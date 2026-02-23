@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FastForward — Intermittent Fasting Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --surface: #12161c;
+    --surface2: #1a2030;
+    --border: #252d3d;
+    --accent: #f0a500;
+    --accent2: #e85d40;
+    --green: #3ecf8e;
+    --blue: #4da6ff;
+    --text: #e8eaf0;
+    --muted: #8892a4;
+    --glow: rgba(240,165,0,0.15);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content:'';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse at 30% 20%, rgba(240,165,0,0.04) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 80%, rgba(232,93,64,0.04) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 3rem;
+    animation: fadeDown 0.6s ease;
+  }
+  .header-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+  }
+  .header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2.2rem, 6vw, 3.5rem);
+    line-height: 1;
+    color: var(--text);
+  }
+  .header h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+  .header p {
+    margin-top: 0.75rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.75rem;
+    margin-bottom: 1.25rem;
+    animation: fadeUp 0.5s ease both;
+    transition: border-color 0.3s;
+  }
+  .card:hover { border-color: rgba(240,165,0,0.3); }
+
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+
+  /* Setup form */
+  .setup-section { display: none; }
+  .setup-section.active { display: block; }
+
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+  .form-group label {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-bottom: 0.4rem;
+  }
+  .form-group input, .form-group select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--glow);
+  }
+  .form-group input[type="time"] {
+    cursor: pointer;
+  }
+  .form-group select option { background: var(--surface2); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--accent);
+    color: #0a0c0f;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    border: none;
+    border-radius: 10px;
+    padding: 0.85rem 1.75rem;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    width: 100%;
+    justify-content: center;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(240,165,0,0.3); }
+  .btn:active { transform: translateY(0); }
+  .btn.secondary {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    box-shadow: none;
+  }
+  .btn.secondary:hover { color: var(--text); border-color: var(--muted); box-shadow: none; }
+  .btn.danger {
+    background: var(--accent2);
+    box-shadow: none;
+  }
+  .btn.danger:hover { box-shadow: 0 8px 24px rgba(232,93,64,0.3); }
+
+  /* Clock face */
+  .clock-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem 0;
+  }
+  .clock-ring {
+    position: relative;
+    width: 220px;
+    height: 220px;
+    margin-bottom: 1.5rem;
+  }
+  .clock-svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+  }
+  .clock-bg-circle {
+    fill: none;
+    stroke: var(--surface2);
+    stroke-width: 12;
+  }
+  .clock-progress {
+    fill: none;
+    stroke-width: 12;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s ease, stroke 0.5s;
+  }
+  .clock-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+  .clock-time {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2.6rem;
+    line-height: 1;
+    color: var(--text);
+  }
+  .clock-label {
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-top: 0.25rem;
+  }
+  .clock-status {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 1rem;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+  }
+  .clock-sublabel {
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  /* Stats grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+  .stat-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.25rem;
+    transition: border-color 0.3s;
+  }
+  .stat-box:hover { border-color: rgba(240,165,0,0.3); }
+  .stat-icon { font-size: 1.4rem; margin-bottom: 0.5rem; }
+  .stat-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.7rem;
+    line-height: 1;
+    color: var(--text);
+  }
+  .stat-name {
+    font-size: 0.68rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-top: 0.25rem;
+  }
+
+  /* Hydration bar */
+  .hydration-section { margin-bottom: 1.25rem; }
+  .hydration-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+  .hydration-label {
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+  .hydration-count {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.1rem;
+    color: var(--blue);
+  }
+  .glass-row {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+  }
+  .glass {
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: transform 0.2s, filter 0.2s;
+    filter: grayscale(1) opacity(0.3);
+  }
+  .glass.filled { filter: none; }
+  .glass:hover { transform: scale(1.2); }
+  .hydration-tip {
+    background: rgba(77,166,255,0.08);
+    border: 1px solid rgba(77,166,255,0.2);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    font-size: 0.78rem;
+    color: var(--blue);
+    line-height: 1.5;
+  }
+
+  /* Motivation toast */
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(200%);
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    border-radius: 14px;
+    padding: 1rem 1.5rem;
+    max-width: 360px;
+    width: calc(100vw - 2rem);
+    text-align: center;
+    z-index: 999;
+    transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px var(--glow);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast-emoji { font-size: 1.8rem; display: block; margin-bottom: 0.4rem; }
+  .toast-msg { font-size: 0.85rem; color: var(--text); line-height: 1.5; }
+  .toast-dismiss {
+    display: inline-block;
+    margin-top: 0.6rem;
+    font-size: 0.7rem;
+    color: var(--muted);
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .toast-dismiss:hover { color: var(--accent); }
+
+  /* Meal window */
+  .window-vis {
+    height: 8px;
+    border-radius: 99px;
+    background: var(--surface2);
+    position: relative;
+    overflow: hidden;
+    margin: 0.75rem 0;
+  }
+  .window-fill {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    border-radius: 99px;
+    transition: left 0.5s, width 0.5s;
+  }
+  .window-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+
+  /* Oz tracker */
+  .oz-bar-wrap {
+    margin: 0.75rem 0 0.5rem;
+  }
+  .oz-bar-track {
+    height: 14px;
+    background: var(--surface2);
+    border-radius: 99px;
+    overflow: hidden;
+    position: relative;
+  }
+  .oz-bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, var(--blue), #7dd3fc);
+    transition: width 0.5s cubic-bezier(0.34,1.56,0.64,1);
+    position: relative;
+  }
+  .oz-bar-fill::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 4px; right: 4px;
+    height: 4px;
+    border-radius: 99px;
+    background: rgba(255,255,255,0.25);
+  }
+  .oz-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.68rem;
+    color: var(--muted);
+    margin-top: 0.35rem;
+  }
+  .oz-labels .oz-current { color: var(--blue); font-weight: 500; }
+  .oz-quick-btns {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin: 0.85rem 0 0.75rem;
+  }
+  .oz-quick-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    padding: 0.4rem 0.75rem;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    white-space: nowrap;
+  }
+  .oz-quick-btn:hover { border-color: var(--blue); background: rgba(77,166,255,0.08); color: var(--blue); }
+  .oz-custom-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  .oz-custom-row input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.6rem 0.9rem;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .oz-custom-row input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(77,166,255,0.12); }
+  .oz-custom-row .btn-oz-add {
+    background: var(--blue);
+    color: #0a0c0f;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 0.78rem;
+    border: none;
+    border-radius: 10px;
+    padding: 0.6rem 1.1rem;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    white-space: nowrap;
+  }
+  .oz-custom-row .btn-oz-add:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(77,166,255,0.3); }
+  .oz-log-list {
+    margin-top: 0.75rem;
+    max-height: 140px;
+    overflow-y: auto;
+  }
+  .oz-log-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.75rem;
+    color: var(--muted);
+    animation: fadeUp 0.25s ease;
+  }
+  .oz-log-item:last-child { border-bottom: none; }
+  .oz-log-item .oz-amt { color: var(--blue); font-weight: 500; }
+  .oz-log-item .oz-del { cursor: pointer; color: var(--border); font-size: 0.8rem; transition: color 0.2s; }
+  .oz-log-item .oz-del:hover { color: var(--accent2); }
+  .oz-section-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1rem 0;
+  }
+
+  /* Notification badge */
+  .notification-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: rgba(62,207,142,0.1);
+    border: 1px solid rgba(62,207,142,0.25);
+    border-radius: 6px;
+    padding: 0.25rem 0.6rem;
+    font-size: 0.68rem;
+    color: var(--green);
+  }
+
+  /* Animations */
+  @keyframes fadeDown { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:none; } }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:none; } }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+  .pulsing { animation: pulse 2s ease infinite; }
+
+  /* Section animations */
+  .card:nth-child(1) { animation-delay: 0.1s; }
+  .card:nth-child(2) { animation-delay: 0.2s; }
+  .card:nth-child(3) { animation-delay: 0.3s; }
+  .stats-grid .stat-box:nth-child(1) { animation: fadeUp 0.5s 0.15s ease both; }
+  .stats-grid .stat-box:nth-child(2) { animation: fadeUp 0.5s 0.25s ease both; }
+  .stats-grid .stat-box:nth-child(3) { animation: fadeUp 0.5s 0.35s ease both; }
+  .stats-grid .stat-box:nth-child(4) { animation: fadeUp 0.5s 0.45s ease both; }
+
+  #setup-view, #dashboard-view { display: none; }
+  #setup-view.active, #dashboard-view.active { display: block; }
+
+  .progress-steps {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 1.5rem;
+  }
+  .step-dot {
+    height: 3px;
+    border-radius: 99px;
+    flex: 1;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+  .step-dot.done { background: var(--accent); }
+
+  .eating-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 99px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .eating-badge.fasting {
+    background: rgba(232,93,64,0.12);
+    border: 1px solid rgba(232,93,64,0.3);
+    color: var(--accent2);
+  }
+  .eating-badge.eating {
+    background: rgba(62,207,142,0.12);
+    border: 1px solid rgba(62,207,142,0.3);
+    color: var(--green);
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <div class="header-label">intermittent fasting</div>
+    <h1>Fast<em>Forward</em></h1>
+    <p>Your personal fasting companion</p>
+  </div>
+
+  <!-- SETUP VIEW -->
+  <div id="setup-view" class="active">
+    <div class="card">
+      <div class="progress-steps" id="progress-steps">
+        <div class="step-dot done"></div>
+        <div class="step-dot"></div>
+        <div class="step-dot"></div>
+        <div class="step-dot"></div>
+      </div>
+
+      <!-- Step 1: About You -->
+      <div class="setup-section active" id="step-1">
+        <div class="card-title">About You</div>
+        <div class="form-group">
+          <label>First Name</label>
+          <input type="text" id="inp-name" placeholder="e.g. Alex">
+        </div>
+        <div class="form-group">
+          <label>Age</label>
+          <input type="number" id="inp-age" placeholder="e.g. 35" min="13" max="100">
+        </div>
+        <div class="form-group">
+          <label>Current Weight (lbs)</label>
+          <input type="number" id="inp-weight" placeholder="e.g. 185" min="80" max="500">
+        </div>
+        <div class="form-group">
+          <label>Goal Weight (lbs)</label>
+          <input type="number" id="inp-goal-weight" placeholder="e.g. 165" min="80" max="500">
+        </div>
+        <button class="btn" onclick="nextStep(2)">Continue →</button>
+      </div>
+
+      <!-- Step 2: Fasting Window -->
+      <div class="setup-section" id="step-2">
+        <div class="card-title">Fasting Protocol</div>
+        <div class="form-group">
+          <label>Fasting Method</label>
+          <select id="inp-protocol">
+            <option value="16:8">16:8 — Fast 16 hrs, Eat 8 hrs</option>
+            <option value="18:6">18:6 — Fast 18 hrs, Eat 6 hrs</option>
+            <option value="20:4">20:4 — Fast 20 hrs, Eat 4 hrs</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>First Meal Time (Eating Window Start)</label>
+          <input type="time" id="inp-eat-start" value="12:00">
+        </div>
+        <div class="form-group" id="custom-end-group" style="display:none">
+          <label>Eating Window End (custom only)</label>
+          <input type="time" id="inp-eat-end-custom" value="20:00">
+        </div>
+        <button class="btn" onclick="nextStep(3)">Continue →</button>
+        <button class="btn secondary" style="margin-top:0.6rem" onclick="nextStep(1)">← Back</button>
+      </div>
+
+      <!-- Step 3: Hydration Goal -->
+      <div class="setup-section" id="step-3">
+        <div class="card-title">Hydration Setup</div>
+        <div class="form-group">
+          <label>Daily Water Goal (glasses, 8oz each)</label>
+          <input type="number" id="inp-water" placeholder="e.g. 8" min="4" max="20" value="8">
+        </div>
+        <div class="form-group">
+          <label>Preferred Reminder Style</label>
+          <select id="inp-reminder">
+            <option value="60">Every hour</option>
+            <option value="90">Every 90 minutes</option>
+            <option value="120">Every 2 hours</option>
+            <option value="180">Every 3 hours</option>
+          </select>
+        </div>
+        <button class="btn" onclick="nextStep(4)">Continue →</button>
+        <button class="btn secondary" style="margin-top:0.6rem" onclick="nextStep(2)">← Back</button>
+      </div>
+
+      <!-- Step 4: Confirm -->
+      <div class="setup-section" id="step-4">
+        <div class="card-title">Ready to Fast?</div>
+        <div id="confirm-summary" style="margin-bottom:1.25rem; line-height:2; font-size:0.85rem; color:var(--muted)"></div>
+        <button class="btn" onclick="startTracking()">🔥 Start My Fast</button>
+        <button class="btn secondary" style="margin-top:0.6rem" onclick="nextStep(3)">← Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD VIEW -->
+  <div id="dashboard-view">
+    <!-- Clock card -->
+    <div class="card" style="text-align:center">
+      <div class="card-title" id="dash-greeting" style="font-size:0.8rem; color:var(--text); text-transform:none; letter-spacing:0; margin-bottom:0.5rem"></div>
+      <div class="clock-container">
+        <div class="clock-ring">
+          <svg class="clock-svg" viewBox="0 0 220 220">
+            <circle class="clock-bg-circle" cx="110" cy="110" r="96"/>
+            <circle class="clock-progress" id="clock-arc" cx="110" cy="110" r="96"
+              stroke-dasharray="603" stroke-dashoffset="603" stroke="var(--accent)"/>
+          </svg>
+          <div class="clock-center">
+            <div class="clock-time" id="clock-display">--:--</div>
+            <div class="clock-label" id="clock-sub">elapsed</div>
+          </div>
+        </div>
+        <div class="clock-status" id="status-text">Loading...</div>
+        <div class="clock-sublabel" id="status-sub"></div>
+      </div>
+
+      <div style="margin-top:1rem">
+        <span class="eating-badge" id="phase-badge">─</span>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-icon">⚖️</div>
+        <div class="stat-value" id="stat-weight">──</div>
+        <div class="stat-name">Current lbs</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-icon">🎯</div>
+        <div class="stat-value" id="stat-goal">──</div>
+        <div class="stat-name">Goal lbs</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-icon">🕐</div>
+        <div class="stat-value" id="stat-window">──</div>
+        <div class="stat-name">Eating Window</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-icon">📅</div>
+        <div class="stat-value" id="stat-days">0</div>
+        <div class="stat-name">Day Streak</div>
+      </div>
+    </div>
+
+    <!-- Eating window visualization -->
+    <div class="card">
+      <div class="card-title">Today's Meal Window</div>
+      <div class="window-vis">
+        <div class="window-fill" id="window-fill" style="background: linear-gradient(90deg, var(--green), var(--blue)); left:0; width:33%"></div>
+      </div>
+      <div class="window-labels">
+        <span id="wl-start">12:00 PM</span>
+        <span id="wl-now" style="color:var(--accent)">Now</span>
+        <span id="wl-end">8:00 PM</span>
+      </div>
+      <div style="margin-top:1rem; font-size:0.8rem; color:var(--muted); line-height:1.6" id="meal-tip"></div>
+    </div>
+
+    <!-- Hydration -->
+    <div class="card">
+      <div class="hydration-header">
+        <div>
+          <div class="card-title" style="margin-bottom:0">Hydration</div>
+        </div>
+        <div class="hydration-count" id="hydration-count">0 / 8</div>
+      </div>
+
+      <!-- Oz tracker bar -->
+      <div class="oz-bar-wrap">
+        <div class="oz-bar-track">
+          <div class="oz-bar-fill" id="oz-bar-fill" style="width:0%"></div>
+        </div>
+        <div class="oz-labels">
+          <span class="oz-current" id="oz-current-label">0 oz</span>
+          <span id="oz-goal-label">goal: 64 oz</span>
+        </div>
+      </div>
+
+      <!-- Quick-add buttons -->
+      <div class="oz-quick-btns">
+        <button class="oz-quick-btn" onclick="addOz(8)">8 oz<br><span style="opacity:0.5;font-size:0.65rem">glass</span></button>
+        <button class="oz-quick-btn" onclick="addOz(12)">12 oz<br><span style="opacity:0.5;font-size:0.65rem">can</span></button>
+        <button class="oz-quick-btn" onclick="addOz(16)">16 oz<br><span style="opacity:0.5;font-size:0.65rem">bottle</span></button>
+        <button class="oz-quick-btn" onclick="addOz(20)">20 oz<br><span style="opacity:0.5;font-size:0.65rem">tumbler</span></button>
+        <button class="oz-quick-btn" onclick="addOz(32)">32 oz<br><span style="opacity:0.5;font-size:0.65rem">large</span></button>
+      </div>
+
+      <!-- Custom oz input -->
+      <div class="oz-custom-row">
+        <input type="number" id="oz-custom-input" min="1" max="128" placeholder="Custom oz amount…">
+        <button class="btn-oz-add" onclick="addCustomOz()">+ Log</button>
+      </div>
+
+      <!-- Log history -->
+      <div class="oz-log-list" id="oz-log-list"></div>
+
+      <hr class="oz-section-divider">
+
+      <!-- Glasses tracker -->
+      <div class="hydration-header" style="margin-bottom:0.5rem">
+        <span style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em">Glass Count (8oz each)</span>
+      </div>
+      <div class="glass-row" id="glass-row"></div>
+      <div class="hydration-tip" id="hydration-tip">Stay hydrated — water helps control hunger during your fast.</div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card">
+      <div class="card-title">Actions</div>
+      <button class="btn" onclick="logMeal()" id="btn-log-meal">🍽️ Log Meal Start</button>
+      <button class="btn secondary" style="margin-top:0.75rem" onclick="resetAll()">⟳ Reset & Reconfigure</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Notification -->
+<div class="toast" id="toast">
+  <span class="toast-emoji" id="toast-emoji">🔥</span>
+  <div class="toast-msg" id="toast-msg"></div>
+  <span class="toast-dismiss" onclick="dismissToast()">Dismiss</span>
+</div>
+
+<script>
+  // ─── State ───────────────────────────────────────────────────────────────────
+  let profile = {};
+  let waterDrank = 0;
+  let ozLog = []; // [{oz, time}]
+  let step = 1;
+  let notifInterval = null;
+  let hydrationInterval = null;
+  let clockInterval = null;
+  let toastTimeout = null;
+
+  const CIRCUMFERENCE = 2 * Math.PI * 96; // 603.186
+
+  // ─── Motivational Messages ────────────────────────────────────────────────────
+  const motivations = [
+    { e:'🔥', m:"Your body is burning fat right now. Keep going!" },
+    { e:'💪', m:"Every hour you fast is an investment in your future self." },
+    { e:'🧠', m:"Fasting boosts mental clarity. Notice how sharp you feel?" },
+    { e:'⚡', m:"Your metabolism is adapting. You're becoming a fat-burning machine." },
+    { e:'🏆', m:"Discipline over desire. You're doing incredible!" },
+    { e:'🌟', m:"Growth happens in the uncomfortable moments. You're growing right now." },
+    { e:'🌊', m:"Stay hydrated! Water carries nutrients and flushes toxins. Drink up!" },
+    { e:'🎯', m:"Every fast completed is a vote for the person you're becoming." },
+    { e:'🌙', m:"Your cells are regenerating and repairing. Trust the process." },
+    { e:'🦁', m:"Hunger is just a feeling — you're in control, not your cravings." },
+    { e:'🌅', m:"The hardest part is almost over. Stay the course." },
+    { e:'✨', m:"You're not just losing weight — you're gaining discipline and resilience." },
+    { e:'🚀', m:"Autophagy has activated. Your body is cleaning up cellular debris!" },
+    { e:'💧', m:"A glass of water now can silence hunger for 20–30 minutes." },
+    { e:'🌿', m:"You're doing something most people won't. That makes all the difference." },
+  ];
+
+  const hydrationTips = [
+    "Sparkling water adds variety and can feel more satisfying during fasting hours.",
+    "Herbal teas (zero calories) are a great fasting-safe way to feel full and warm.",
+    "Water with a slice of lemon is refreshing and naturally suppresses appetite.",
+    "Feeling hungry? Drink a full glass of water first — hunger and thirst signals overlap.",
+    "Cold water slightly boosts metabolism as your body warms it up.",
+    "Black coffee (no cream/sugar) and plain tea are generally fasting-safe.",
+    "Add a tiny pinch of Himalayan salt to your water to maintain electrolytes.",
+    "Sipping consistently throughout the day is better than gulping all at once.",
+  ];
+
+  const mealTips = {
+    fasting: [
+      "Drink water or herbal tea to stay comfortable through your fasting window.",
+      "Light movement like a walk can reduce hunger during fasting hours.",
+      "Distraction is your friend — dive into a task and time will fly.",
+      "Your eating window opens soon. Plan what nutritious meal you'll have first.",
+    ],
+    eating: [
+      "Start your meal window with protein — it keeps you full longer.",
+      "Eat slowly and mindfully. It takes 20 minutes for fullness to register.",
+      "Prioritize whole foods: lean proteins, vegetables, healthy fats.",
+      "Avoid high-sugar foods at meal time — they spike and crash energy fast.",
+    ]
+  };
+
+  // ─── Setup Steps ──────────────────────────────────────────────────────────────
+  document.getElementById('inp-protocol').addEventListener('change', function() {
+    document.getElementById('custom-end-group').style.display = this.value === 'custom' ? 'block' : 'none';
+  });
+
+  function nextStep(n) {
+    if (!validateStep(step)) return;
+    document.getElementById(`step-${step}`).classList.remove('active');
+    step = n;
+    document.getElementById(`step-${step}`).classList.add('active');
+    const dots = document.querySelectorAll('.step-dot');
+    dots.forEach((d,i) => d.classList.toggle('done', i < step));
+    if (step === 4) buildSummary();
+  }
+
+  function validateStep(s) {
+    if (s === 1) {
+      const name = document.getElementById('inp-name').value.trim();
+      const age = parseInt(document.getElementById('inp-age').value);
+      const weight = parseInt(document.getElementById('inp-weight').value);
+      const goal = parseInt(document.getElementById('inp-goal-weight').value);
+      if (!name) { showToast('🙋','What should I call you?'); return false; }
+      if (!age || age < 13) { showToast('📅','Please enter a valid age (13+)'); return false; }
+      if (!weight || weight < 80) { showToast('⚖️','Please enter a valid current weight'); return false; }
+      if (!goal || goal < 80) { showToast('🎯','Please enter a valid goal weight'); return false; }
+    }
+    return true;
+  }
+
+  function buildSummary() {
+    const name = document.getElementById('inp-name').value.trim();
+    const protocol = document.getElementById('inp-protocol').value;
+    const eatStart = document.getElementById('inp-eat-start').value;
+    const water = document.getElementById('inp-water').value;
+    const eatEnd = computeEatEnd(eatStart, protocol);
+    document.getElementById('confirm-summary').innerHTML = `
+      <b style="color:var(--text)">${name}</b>, here's your plan:<br>
+      Protocol: <b style="color:var(--accent)">${protocol}</b><br>
+      Eating window: <b style="color:var(--green)">${formatTime(eatStart)}</b> → <b style="color:var(--green)">${formatTime(eatEnd)}</b><br>
+      Daily water goal: <b style="color:var(--blue)">${water} glasses</b>
+    `;
+  }
+
+  function computeEatEnd(startTime, protocol) {
+    if (protocol === 'custom') {
+      return document.getElementById('inp-eat-end-custom').value || '20:00';
+    }
+    const hours = parseInt(protocol.split(':')[1]);
+    const [h, m] = startTime.split(':').map(Number);
+    const endH = (h + hours) % 24;
+    return `${String(endH).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+  }
+
+  function startTracking() {
+    profile = {
+      name: document.getElementById('inp-name').value.trim(),
+      age: parseInt(document.getElementById('inp-age').value),
+      weight: parseInt(document.getElementById('inp-weight').value),
+      goalWeight: parseInt(document.getElementById('inp-goal-weight').value),
+      protocol: document.getElementById('inp-protocol').value,
+      eatStart: document.getElementById('inp-eat-start').value,
+      eatEnd: computeEatEnd(document.getElementById('inp-eat-start').value, document.getElementById('inp-protocol').value),
+      waterGoal: parseInt(document.getElementById('inp-water').value),
+      reminderMinutes: parseInt(document.getElementById('inp-reminder').value),
+      startDate: new Date().toDateString(),
+      streak: 1,
+    };
+
+    localStorage.setItem('ff_profile', JSON.stringify(profile));
+    waterDrank = 0;
+    ozLog = [];
+    localStorage.setItem('ff_water', '0');
+    localStorage.setItem('ff_oz_log', '[]');
+    localStorage.setItem('ff_water_date', new Date().toDateString());
+
+    showDashboard();
+  }
+
+  // ─── Dashboard ────────────────────────────────────────────────────────────────
+  function showDashboard() {
+    document.getElementById('setup-view').classList.remove('active');
+    document.getElementById('dashboard-view').classList.add('active');
+
+    // Check water date reset
+    const wDate = localStorage.getItem('ff_water_date');
+    if (wDate !== new Date().toDateString()) {
+      waterDrank = 0;
+      ozLog = [];
+      localStorage.setItem('ff_water', '0');
+      localStorage.setItem('ff_oz_log', '[]');
+      localStorage.setItem('ff_water_date', new Date().toDateString());
+    } else {
+      waterDrank = parseInt(localStorage.getItem('ff_water') || '0');
+      ozLog = JSON.parse(localStorage.getItem('ff_oz_log') || '[]');
+    }
+
+    buildGlasses();
+    renderOzLog();
+    updateOzBar();
+    updateStats();
+    updateClock();
+    clockInterval = setInterval(updateClock, 10000);
+    scheduleMotivation();
+    scheduleHydration();
+  }
+
+  function buildGlasses() {
+    const row = document.getElementById('glass-row');
+    row.innerHTML = '';
+    for (let i = 0; i < profile.waterGoal; i++) {
+      const g = document.createElement('span');
+      g.className = 'glass' + (i < waterDrank ? ' filled' : '');
+      g.textContent = '🥤';
+      g.title = `Glass ${i+1}`;
+      g.onclick = () => { waterDrank = i+1; localStorage.setItem('ff_water', waterDrank); buildGlasses(); updateHydrationDisplay(); };
+      row.appendChild(g);
+    }
+    updateHydrationDisplay();
+  }
+
+  function addGlass() {
+    if (waterDrank < profile.waterGoal) {
+      waterDrank++;
+      localStorage.setItem('ff_water', waterDrank);
+      buildGlasses();
+      if (waterDrank === profile.waterGoal) {
+        showToast('🌊', `Outstanding! You've hit your daily water goal of ${profile.waterGoal} glasses. Your body thanks you!`);
+      }
+    }
+  }
+
+  // ─── Oz Tracker ──────────────────────────────────────────────────────────────
+  function addOz(amount) {
+    const entry = { oz: amount, time: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) };
+    ozLog.push(entry);
+    localStorage.setItem('ff_oz_log', JSON.stringify(ozLog));
+    // Sync glass count: every 8oz = 1 glass
+    const totalOz = ozLog.reduce((s,e) => s+e.oz, 0);
+    waterDrank = Math.min(Math.floor(totalOz / 8), profile.waterGoal);
+    localStorage.setItem('ff_water', waterDrank);
+    buildGlasses();
+    renderOzLog();
+    updateOzBar();
+    const goalOz = profile.waterGoal * 8;
+    if (totalOz >= goalOz) {
+      showToast('🌊', `Incredible! You've hit your ${goalOz} oz daily water goal! Your body is thriving.`);
+    } else {
+      const rem = goalOz - totalOz;
+      showToast('💧', `+${amount} oz logged! ${totalOz} oz down, ${rem} oz to go today.`);
+    }
+  }
+
+  function addCustomOz() {
+    const input = document.getElementById('oz-custom-input');
+    const val = parseInt(input.value);
+    if (!val || val < 1 || val > 128) {
+      showToast('⚠️', 'Please enter a valid amount between 1 and 128 oz.');
+      return;
+    }
+    addOz(val);
+    input.value = '';
+  }
+
+  function deleteOzEntry(index) {
+    ozLog.splice(index, 1);
+    localStorage.setItem('ff_oz_log', JSON.stringify(ozLog));
+    const totalOz = ozLog.reduce((s,e) => s+e.oz, 0);
+    waterDrank = Math.min(Math.floor(totalOz / 8), profile.waterGoal);
+    localStorage.setItem('ff_water', waterDrank);
+    buildGlasses();
+    renderOzLog();
+    updateOzBar();
+  }
+
+  function renderOzLog() {
+    const list = document.getElementById('oz-log-list');
+    if (ozLog.length === 0) {
+      list.innerHTML = '<div style="font-size:0.73rem;color:var(--muted);padding:0.5rem 0;text-align:center">No drinks logged yet today</div>';
+      return;
+    }
+    list.innerHTML = [...ozLog].reverse().map((e, ri) => {
+      const i = ozLog.length - 1 - ri;
+      return `<div class="oz-log-item">
+        <span>🥤 ${e.time}</span>
+        <span class="oz-amt">+${e.oz} oz</span>
+        <span class="oz-del" onclick="deleteOzEntry(${i})" title="Remove">✕</span>
+      </div>`;
+    }).join('');
+  }
+
+  function updateOzBar() {
+    const totalOz = ozLog.reduce((s,e) => s+e.oz, 0);
+    const goalOz = (profile.waterGoal || 8) * 8;
+    const pct = Math.min((totalOz / goalOz) * 100, 100);
+    document.getElementById('oz-bar-fill').style.width = pct + '%';
+    document.getElementById('oz-current-label').textContent = `${totalOz} oz`;
+    document.getElementById('oz-goal-label').textContent = `goal: ${goalOz} oz`;
+    document.getElementById('hydration-count').textContent = `${totalOz} / ${goalOz} oz`;
+  }
+
+  function updateHydrationDisplay() {
+    const totalOz = ozLog.reduce((s,e) => s+e.oz, 0);
+    const goalOz = (profile.waterGoal || 8) * 8;
+    document.getElementById('hydration-count').textContent = `${totalOz} / ${goalOz} oz`;
+    const tip = hydrationTips[Math.floor(Math.random() * hydrationTips.length)];
+    document.getElementById('hydration-tip').textContent = tip;
+    updateOzBar();
+    renderOzLog();
+  }
+
+  function updateStats() {
+    document.getElementById('stat-weight').textContent = profile.weight;
+    document.getElementById('stat-goal').textContent = profile.goalWeight;
+    document.getElementById('stat-window').textContent = profile.protocol;
+    document.getElementById('stat-days').textContent = profile.streak || 1;
+    document.getElementById('wl-start').textContent = formatTime(profile.eatStart);
+    document.getElementById('wl-end').textContent = formatTime(profile.eatEnd);
+  }
+
+  function updateClock() {
+    const now = new Date();
+    const hrs = now.getHours();
+    const mins = now.getMinutes();
+    const currentMins = hrs * 60 + mins;
+
+    const eatStartMins = timeToMins(profile.eatStart);
+    const eatEndMins = timeToMins(profile.eatEnd);
+
+    const inEatingWindow = (currentMins >= eatStartMins && currentMins < eatEndMins);
+
+    // Greeting
+    const greet = hrs < 12 ? 'Good morning' : hrs < 17 ? 'Good afternoon' : 'Good evening';
+    document.getElementById('dash-greeting').textContent = `${greet}, ${profile.name} 👋`;
+
+    // Phase badge
+    const badge = document.getElementById('phase-badge');
+    if (inEatingWindow) {
+      badge.className = 'eating-badge eating';
+      badge.textContent = '🍽️ Eating Window';
+    } else {
+      badge.className = 'eating-badge fasting';
+      badge.textContent = '⚡ Fasting';
+    }
+
+    // Clock calculation — all times in minutes within a 1440-min day
+    // eating window: [eatStartMins, eatEndMins)  (assumed same-day, no midnight cross)
+    const eatWindowMins = eatEndMins - eatStartMins;          // e.g. 480 for 8hr window
+    const fastWindowMins = 1440 - eatWindowMins;              // e.g. 960 for 16hr fast
+
+    let elapsedMins, totalMins, labelText, subText;
+
+    if (inEatingWindow) {
+      // Straightforward: how far into the eating window are we?
+      elapsedMins = currentMins - eatStartMins;
+      totalMins   = eatWindowMins;
+      labelText   = 'eating elapsed';
+      const rem   = totalMins - elapsedMins;
+      subText     = `${formatDuration(rem)} until eating window closes`;
+    } else {
+      // Fasting phase: measure minutes since the eating window ended (mod 1440)
+      // If we're before the eating window today, fasting started at eatEnd yesterday
+      totalMins = fastWindowMins;
+
+      let sinceEnd;
+      if (currentMins < eatStartMins) {
+        // Before today's eating window — fasting since yesterday's eatEnd
+        sinceEnd = (1440 - eatEndMins) + currentMins;
+      } else {
+        // After today's eating window
+        sinceEnd = currentMins - eatEndMins;
+      }
+
+      // Hard cap: never show more than the expected fast window length
+      elapsedMins = Math.min(sinceEnd, fastWindowMins);
+
+      labelText = 'fasting elapsed';
+      const minsToEat = currentMins < eatStartMins
+        ? eatStartMins - currentMins
+        : 1440 - currentMins + eatStartMins;
+      subText = `${formatDuration(minsToEat)} until your eating window opens`;
+    }
+
+    // Safety clamp so progress ring never overflows
+    elapsedMins = Math.max(0, Math.min(elapsedMins, totalMins));
+    const progress = elapsedMins / totalMins;
+    const offset = CIRCUMFERENCE * (1 - progress);
+
+    const arc = document.getElementById('clock-arc');
+    arc.style.strokeDashoffset = offset;
+    arc.style.stroke = inEatingWindow ? 'var(--green)' : 'var(--accent)';
+
+    document.getElementById('clock-display').textContent = formatDuration(elapsedMins);
+    document.getElementById('clock-sub').textContent = labelText;
+    document.getElementById('status-text').textContent = inEatingWindow ? 'Eating window open' : 'Currently fasting';
+    document.getElementById('status-sub').textContent = subText;
+
+    // Window visualization bar
+    const dayProgress = currentMins / 1440;
+    const eatStartPct = eatStartMins / 1440;
+    const eatEndPct = eatEndMins / 1440;
+    const fill = document.getElementById('window-fill');
+    fill.style.left = (eatStartPct * 100) + '%';
+    fill.style.width = ((eatEndPct - eatStartPct) * 100) + '%';
+    document.getElementById('wl-now').style.marginLeft = (dayProgress * 100) + '%';
+
+    // Meal tip
+    const pool = inEatingWindow ? mealTips.eating : mealTips.fasting;
+    const tipEl = document.getElementById('meal-tip');
+    if (!tipEl.dataset.last) {
+      tipEl.textContent = pool[Math.floor(Math.random() * pool.length)];
+      tipEl.dataset.last = Date.now();
+    }
+
+    // Log meal button
+    document.getElementById('btn-log-meal').textContent = inEatingWindow ? '✅ Eating Window Active' : '🍽️ Log Meal Start';
+  }
+
+  function logMeal() {
+    const now = new Date();
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+    const eatStartMins = timeToMins(profile.eatStart);
+    const eatEndMins = timeToMins(profile.eatEnd);
+    const inEatingWindow = (currentMins >= eatStartMins && currentMins < eatEndMins);
+    if (inEatingWindow) {
+      showToast('🍽️', 'Your eating window is open! Enjoy your meal mindfully — choose whole, nutritious foods to fuel your fast.');
+    } else {
+      showToast('⏰', `Your eating window opens at ${formatTime(profile.eatStart)}. Stay hydrated until then!`);
+    }
+  }
+
+  // ─── Notifications ────────────────────────────────────────────────────────────
+  function scheduleMotivation() {
+    const getInterval = () => Math.floor(Math.random() * 15 + 10) * 60 * 1000; // 10-25 min
+    const fire = () => {
+      const m = motivations[Math.floor(Math.random() * motivations.length)];
+      showToast(m.e, m.msg);
+      setTimeout(fire, getInterval());
+    };
+    setTimeout(fire, getInterval());
+    // First toast after 5s as welcome
+    setTimeout(() => {
+      showToast('🔥', `Welcome back, ${profile.name}! Your fast is tracked and your streak is active. You've got this!`);
+    }, 5000);
+  }
+
+  function scheduleHydration() {
+    const mins = profile.reminderMinutes || 60;
+    hydrationInterval = setInterval(() => {
+      const now = new Date();
+      const currentMins = now.getHours() * 60 + now.getMinutes();
+      const eatStartMins = timeToMins(profile.eatStart);
+      const eatEndMins = timeToMins(profile.eatEnd);
+      const inEatingWindow = currentMins >= eatStartMins && currentMins < eatEndMins;
+      if (!inEatingWindow) {
+        const totalOz = ozLog.reduce((s,e) => s+e.oz, 0);
+        const goalOz = profile.waterGoal * 8;
+        const remaining = goalOz - totalOz;
+        if (remaining > 0) {
+          showToast('💧', `Hydration check! You've had ${totalOz} oz of your ${goalOz} oz goal today. ${remaining} oz to go — water helps control fasting hunger.`);
+        }
+      }
+    }, mins * 60 * 1000);
+  }
+
+  // ─── Toast ────────────────────────────────────────────────────────────────────
+  function showToast(emoji, message) {
+    clearTimeout(toastTimeout);
+    document.getElementById('toast-emoji').textContent = emoji;
+    document.getElementById('toast-msg').textContent = message;
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    toastTimeout = setTimeout(dismissToast, 8000);
+  }
+
+  function dismissToast() {
+    document.getElementById('toast').classList.remove('show');
+  }
+
+  // ─── Helpers ──────────────────────────────────────────────────────────────────
+  function timeToMins(t) {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  function formatTime(t) {
+    const [h, m] = t.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const hour = h % 12 || 12;
+    return `${hour}:${String(m).padStart(2,'0')} ${ampm}`;
+  }
+
+  function formatDuration(mins) {
+    const h = Math.floor(Math.abs(mins) / 60);
+    const m = Math.abs(mins) % 60;
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+  }
+
+  function resetAll() {
+    clearInterval(clockInterval);
+    clearInterval(hydrationInterval);
+    localStorage.removeItem('ff_profile');
+    localStorage.removeItem('ff_water');
+    localStorage.removeItem('ff_oz_log');
+    localStorage.removeItem('ff_water_date');
+    document.getElementById('dashboard-view').classList.remove('active');
+    document.getElementById('setup-view').classList.add('active');
+    step = 1;
+    document.querySelectorAll('.setup-section').forEach((s,i) => s.classList.toggle('active', i===0));
+    document.querySelectorAll('.step-dot').forEach((d,i) => d.classList.toggle('done', i===0));
+    profile = {};
+    waterDrank = 0;
+    ozLog = [];
+  }
+
+  // ─── Load saved profile ────────────────────────────────────────────────────────
+  (function init() {
+    const saved = localStorage.getItem('ff_profile');
+    if (saved) {
+      profile = JSON.parse(saved);
+      showDashboard();
+    }
+  })();
+</script>
+</body>
+</html>
