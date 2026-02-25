@@ -467,6 +467,135 @@
     margin: 1rem 0;
   }
 
+  /* ── Badges ─────────────────────────────────────────── */
+  .badge-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.25rem;
+  }
+  .badge-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.85rem 0.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    text-align: center;
+    transition: border-color 0.3s, transform 0.2s;
+    position: relative;
+  }
+  .badge-item.earned {
+    border-color: var(--accent);
+    background: rgba(240,165,0,0.06);
+  }
+  .badge-item.earned:hover { transform: translateY(-2px); }
+  .badge-item.locked { filter: grayscale(1); opacity: 0.4; }
+  .badge-emoji { font-size: 1.8rem; line-height: 1; }
+  .badge-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--text);
+    line-height: 1.3;
+  }
+  .badge-item.earned .badge-name { color: var(--accent); }
+  .badge-date {
+    font-size: 0.58rem;
+    color: var(--muted);
+  }
+  .badge-new-dot {
+    position: absolute;
+    top: 6px; right: 6px;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 1.5s ease infinite;
+  }
+  .badge-award-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .badge-award-overlay.show { opacity: 1; pointer-events: all; }
+  .badge-award-box {
+    background: var(--surface);
+    border: 2px solid var(--accent);
+    border-radius: 20px;
+    padding: 2.5rem 2rem;
+    text-align: center;
+    max-width: 300px;
+    box-shadow: 0 0 60px rgba(240,165,0,0.3);
+    animation: badgePop 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  .badge-award-emoji { font-size: 4rem; display: block; margin-bottom: 0.75rem; }
+  .badge-award-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.4rem;
+    color: var(--accent);
+    margin-bottom: 0.25rem;
+  }
+  .badge-award-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.5; margin-bottom: 1.25rem; }
+  @keyframes badgePop {
+    from { transform: scale(0.5); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+  }
+  /* ── Weight Log ─────────────────────────────────────── */
+  .weight-log-list {
+    margin-top: 0.5rem;
+    max-height: 160px;
+    overflow-y: auto;
+  }
+  .weight-log-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.78rem;
+  }
+  .weight-log-item:last-child { border-bottom: none; }
+  .wl-date { color: var(--muted); }
+  .wl-val  { color: var(--text); font-weight: 500; }
+  .wl-delta { font-size: 0.72rem; }
+  .wl-delta.down { color: var(--green); }
+  .wl-delta.up   { color: var(--accent2); }
+  .wl-delta.same { color: var(--muted); }
+  .weight-chart {
+    width: 100%;
+    height: 70px;
+    margin: 0.75rem 0 0.25rem;
+    border-radius: 8px;
+    display: block;
+  }
+  .weight-due-banner {
+    background: rgba(240,165,0,0.08);
+    border: 1px solid rgba(240,165,0,0.25);
+    border-radius: 10px;
+    padding: 0.7rem 1rem;
+    font-size: 0.78rem;
+    color: var(--accent);
+    margin-bottom: 0.85rem;
+  }
+  /* ── Import/Export ──────────────────────────────────── */
+  .io-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+  }
+  .io-row .btn { font-size: 0.78rem; padding: 0.7rem 1rem; }
+
   /* Notification badge */
   .notification-badge {
     display: inline-flex;
@@ -742,12 +871,56 @@
       <div class="hydration-tip" id="hydration-tip">Stay hydrated — water helps control hunger during your fast.</div>
     </div>
 
+    <!-- Weekly Weight Check-In -->
+    <div class="card" id="weight-card">
+      <div class="card-title">Weekly Weight Log</div>
+      <div id="weight-due-banner" class="weight-due-banner" style="display:none">
+        📅 It's been 7 days — time for your weekly weigh-in!
+      </div>
+      <canvas class="weight-chart" id="weight-chart"></canvas>
+      <div class="weight-log-list" id="weight-log-list"></div>
+      <div style="display:flex;gap:0.5rem;margin-top:1rem;align-items:center">
+        <input type="number" id="weight-input" min="50" max="500" placeholder="Enter weight (lbs)…"
+          style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:0.65rem 0.9rem;color:var(--text);font-family:'DM Mono',monospace;font-size:0.9rem;outline:none;">
+        <button class="btn-oz-add" onclick="logWeight()" style="background:var(--green);">Log</button>
+      </div>
+    </div>
+
+    <!-- Badges -->
+    <div class="card">
+      <div class="card-title">Achievements</div>
+      <div class="badge-grid" id="badge-grid"></div>
+    </div>
+
     <!-- Actions -->
     <div class="card">
       <div class="card-title">Actions</div>
       <button class="btn" onclick="logMeal()" id="btn-log-meal">🍽️ Log Meal Start</button>
-      <button class="btn secondary" style="margin-top:0.75rem" onclick="resetAll()">⟳ Reset & Reconfigure</button>
+      <button class="btn secondary" style="margin-top:0.75rem" onclick="resetAll()">&#x27F3; Reset &amp; Reconfigure</button>
     </div>
+
+    <!-- Import / Export -->
+    <div class="card">
+      <div class="card-title">Backup &amp; Restore</div>
+      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:0.75rem;line-height:1.6">
+        Export a JSON backup of all your data — profile, weight log, badges, and streaks. Import to restore on any device.
+      </p>
+      <div class="io-row">
+        <button class="btn" onclick="exportData()">&#x2B07; Export Backup</button>
+        <button class="btn secondary" onclick="document.getElementById('import-file').click()">&#x2B06; Import Backup</button>
+      </div>
+      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+    </div>
+  </div>
+</div>
+
+<!-- Badge Award Overlay -->
+<div class="badge-award-overlay" id="badge-overlay" onclick="closeBadgeOverlay()">
+  <div class="badge-award-box" onclick="event.stopPropagation()">
+    <span class="badge-award-emoji" id="bao-emoji">🏆</span>
+    <div class="badge-award-title" id="bao-title">Badge Earned!</div>
+    <div class="badge-award-desc" id="bao-desc"></div>
+    <button class="btn" onclick="closeBadgeOverlay()">Awesome! 🎉</button>
   </div>
 </div>
 
@@ -763,13 +936,41 @@
   let profile = {};
   let waterDrank = 0;
   let ozLog = []; // [{oz, time}]
+  let weightLog = []; // [{date, weight}]  persisted as ff_weight_log
+  let earnedBadges = {}; // {badgeId: dateString}  persisted as ff_badges
   let step = 1;
   let notifInterval = null;
   let hydrationInterval = null;
   let clockInterval = null;
   let toastTimeout = null;
+  let pendingBadgeQueue = [];
 
   const CIRCUMFERENCE = 2 * Math.PI * 96; // 603.186
+
+  // ─── Badge Definitions ────────────────────────────────────────────────────────
+  const ALL_BADGES = [
+    // Streak / fasting days
+    { id:'streak_1',   emoji:'⚡', name:'First Fast',     desc:'Completed your first fasting day.',          type:'streak',  threshold:1  },
+    { id:'streak_3',   emoji:'🔥', name:'3-Day Flame',    desc:'Fasted consistently for 3 days.',            type:'streak',  threshold:3  },
+    { id:'streak_7',   emoji:'🗓️', name:'One Week',       desc:'A full week of intermittent fasting!',       type:'streak',  threshold:7  },
+    { id:'streak_14',  emoji:'💪', name:'Two Weeks',      desc:'14 days of discipline and dedication.',      type:'streak',  threshold:14 },
+    { id:'streak_21',  emoji:'🏅', name:'21 Days',        desc:'21 days — a habit is born!',                 type:'streak',  threshold:21 },
+    { id:'streak_30',  emoji:'🥇', name:'One Month',      desc:'30 days of intermittent fasting mastery!',   type:'streak',  threshold:30 },
+    { id:'streak_60',  emoji:'🏆', name:'60-Day Legend',  desc:'Two months strong. You're unstoppable.',   type:'streak',  threshold:60 },
+    { id:'streak_90',  emoji:'💎', name:'90-Day Diamond', desc:'Three months. Elite-level commitment.',      type:'streak',  threshold:90 },
+    // Weight loss
+    { id:'loss_1',     emoji:'📉', name:'First Pound',    desc:'Lost your first pound. Every one counts!',  type:'weight',  threshold:1  },
+    { id:'loss_5',     emoji:'🎯', name:'5 lbs Down',     desc:'5 pounds lost. You're on your way!',       type:'weight',  threshold:5  },
+    { id:'loss_10',    emoji:'🌟', name:'10 lbs Gone',    desc:'10 pounds lost — a major milestone!',       type:'weight',  threshold:10 },
+    { id:'loss_20',    emoji:'🚀', name:'20 lbs Lighter', desc:'20 pounds! Your hard work shows.',          type:'weight',  threshold:20 },
+    { id:'loss_goal',  emoji:'🎊', name:'Goal Reached',   desc:'You've hit your target weight. Amazing!',  type:'weight',  threshold:0  },
+    // Hydration
+    { id:'hydro_7',    emoji:'💧', name:'Hydration Week', desc:'Hit your water goal 7 days in a row.',      type:'hydro',   threshold:7  },
+    { id:'hydro_first',emoji:'🫗', name:'First Sip',      desc:'Logged your first hydration entry.',        type:'hydro',   threshold:1  },
+    // Weight logging
+    { id:'log_first',  emoji:'⚖️', name:'First Weigh-In', desc:'Logged your first weekly weight.',          type:'wlog',    threshold:1  },
+    { id:'log_4',      emoji:'📊', name:'Monthly Check',  desc:'4 weekly weigh-ins completed!',             type:'wlog',    threshold:4  },
+  ];
 
   // ─── Motivational Messages ────────────────────────────────────────────────────
   const motivations = [
@@ -887,8 +1088,12 @@
     localStorage.setItem('ff_profile', JSON.stringify(profile));
     waterDrank = 0;
     ozLog = [];
+    weightLog = [];
+    earnedBadges = {};
     localStorage.setItem('ff_water', '0');
     localStorage.setItem('ff_oz_log', '[]');
+    localStorage.setItem('ff_weight_log', '[]');
+    localStorage.setItem('ff_badges', '{}');
     localStorage.setItem('ff_water_date', new Date().toDateString());
 
     showDashboard();
@@ -912,14 +1117,21 @@
       ozLog = JSON.parse(localStorage.getItem('ff_oz_log') || '[]');
     }
 
+    weightLog = JSON.parse(localStorage.getItem('ff_weight_log') || '[]');
+    earnedBadges = JSON.parse(localStorage.getItem('ff_badges') || '{}');
     buildGlasses();
     renderOzLog();
     updateOzBar();
     updateStats();
+    renderWeightLog();
+    drawWeightChart();
+    renderBadges();
+    checkBadges();
     updateClock();
     clockInterval = setInterval(updateClock, 10000);
     scheduleMotivation();
     scheduleHydration();
+    tickDailyStreak();
   }
 
   function buildGlasses() {
@@ -959,6 +1171,7 @@
     buildGlasses();
     renderOzLog();
     updateOzBar();
+    checkBadges();
     const goalOz = profile.waterGoal * 8;
     if (totalOz >= goalOz) {
       showToast('🌊', `Incredible! You've hit your ${goalOz} oz daily water goal! Your body is thriving.`);
@@ -1027,12 +1240,34 @@
   }
 
   function updateStats() {
-    document.getElementById('stat-weight').textContent = profile.weight;
+    const currentW = weightLog.length > 0 ? weightLog[weightLog.length-1].weight : profile.weight;
+    document.getElementById('stat-weight').textContent = currentW;
     document.getElementById('stat-goal').textContent = profile.goalWeight;
     document.getElementById('stat-window').textContent = profile.protocol;
     document.getElementById('stat-days').textContent = profile.streak || 1;
     document.getElementById('wl-start').textContent = formatTime(profile.eatStart);
     document.getElementById('wl-end').textContent = formatTime(profile.eatEnd);
+  }
+
+  // Called once per day to increment streak and trigger badge checks
+  function tickDailyStreak() {
+    const today = new Date().toDateString();
+    const lastTick = localStorage.getItem('ff_last_streak_tick');
+    if (lastTick !== today) {
+      profile.streak = (profile.streak || 1) + 1;
+      localStorage.setItem('ff_last_streak_tick', today);
+      localStorage.setItem('ff_profile', JSON.stringify(profile));
+      updateStats();
+      checkBadges();
+      // Check if weigh-in is due
+      if (weightLog.length > 0) {
+        const lastDate = new Date(weightLog[weightLog.length-1].date);
+        const daysSince = Math.floor((Date.now() - lastDate.getTime()) / 86400000);
+        if (daysSince >= 7) showToast('📅', 'Time for your weekly weigh-in! Log your weight in the Weekly Weight Log card.');
+      } else if (profile.streak >= 7) {
+        showToast('📅', "You've been fasting for a week — time for your first weigh-in!");
+      }
+    }
   }
 
   function updateClock() {
@@ -1213,6 +1448,247 @@
     return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
   }
 
+  // ─── Weight Log ──────────────────────────────────────────────────────────────
+  function logWeight() {
+    const input = document.getElementById('weight-input');
+    const val = parseFloat(input.value);
+    if (!val || val < 50 || val > 500) {
+      showToast('⚠️', 'Please enter a valid weight between 50 and 500 lbs.');
+      return;
+    }
+    const today = new Date().toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+    // Prevent duplicate same-day entries (update instead)
+    const existing = weightLog.findIndex(e => e.date === today);
+    if (existing !== -1) {
+      weightLog[existing].weight = val;
+    } else {
+      weightLog.push({ date: today, weight: val });
+    }
+    localStorage.setItem('ff_weight_log', JSON.stringify(weightLog));
+    // Update profile current weight to latest
+    profile.weight = val;
+    localStorage.setItem('ff_profile', JSON.stringify(profile));
+    input.value = '';
+    renderWeightLog();
+    drawWeightChart();
+    updateStats();
+    checkBadges();
+    showToast('⚖️', `Weight logged: ${val} lbs. Keep it up!`);
+  }
+
+  function renderWeightLog() {
+    const list = document.getElementById('weight-log-list');
+    if (weightLog.length === 0) {
+      list.innerHTML = '<div style="font-size:0.73rem;color:var(--muted);padding:0.5rem 0;text-align:center">No weigh-ins yet. Log your first!</div>';
+      return;
+    }
+    list.innerHTML = [...weightLog].reverse().map((e, ri) => {
+      const i = weightLog.length - 1 - ri;
+      const prev = i > 0 ? weightLog[i-1].weight : null;
+      let deltaHtml = '';
+      if (prev !== null) {
+        const d = (e.weight - prev).toFixed(1);
+        const cls = d < 0 ? 'down' : d > 0 ? 'up' : 'same';
+        const sign = d > 0 ? '+' : '';
+        deltaHtml = `<span class="wl-delta ${cls}">${sign}${d} lbs</span>`;
+      }
+      return `<div class="weight-log-item">
+        <span class="wl-date">${e.date}</span>
+        <span class="wl-val">${e.weight} lbs</span>
+        ${deltaHtml}
+      </div>`;
+    }).join('');
+    // Check if weigh-in is due (7+ days since last)
+    const lastEntry = weightLog[weightLog.length - 1];
+    const lastDate = new Date(lastEntry.date);
+    const daysSince = Math.floor((Date.now() - lastDate.getTime()) / 86400000);
+    document.getElementById('weight-due-banner').style.display = daysSince >= 7 ? 'block' : 'none';
+  }
+
+  function drawWeightChart() {
+    const canvas = document.getElementById('weight-chart');
+    if (!canvas || weightLog.length < 2) {
+      canvas.style.display = 'none';
+      return;
+    }
+    canvas.style.display = 'block';
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+    canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    const W = canvas.offsetWidth, H = canvas.offsetHeight;
+    const vals = weightLog.map(e => e.weight);
+    const minV = Math.min(...vals) - 2;
+    const maxV = Math.max(...vals) + 2;
+    const range = maxV - minV || 1;
+    const pad = 16;
+    const xStep = (W - pad*2) / (vals.length - 1);
+
+    ctx.clearRect(0, 0, W, H);
+
+    // Gradient fill
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, 'rgba(62,207,142,0.25)');
+    grad.addColorStop(1, 'rgba(62,207,142,0)');
+    ctx.beginPath();
+    vals.forEach((v, i) => {
+      const x = pad + i * xStep;
+      const y = pad + (1 - (v - minV) / range) * (H - pad*2);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.lineTo(pad + (vals.length-1)*xStep, H);
+    ctx.lineTo(pad, H);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Line
+    ctx.beginPath();
+    ctx.strokeStyle = '#3ecf8e';
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    vals.forEach((v, i) => {
+      const x = pad + i * xStep;
+      const y = pad + (1 - (v - minV) / range) * (H - pad*2);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // Dots
+    vals.forEach((v, i) => {
+      const x = pad + i * xStep;
+      const y = pad + (1 - (v - minV) / range) * (H - pad*2);
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI*2);
+      ctx.fillStyle = '#3ecf8e';
+      ctx.fill();
+    });
+  }
+
+  // ─── Badge System ─────────────────────────────────────────────────────────────
+  function checkBadges() {
+    const streak = profile.streak || 1;
+    const startWeight = profile.weight; // fallback
+    const firstWeight = weightLog.length > 0 ? weightLog[0].weight : null;
+    const currentWeight = weightLog.length > 0 ? weightLog[weightLog.length-1].weight : (profile.weight || 0);
+    const lostLbs = firstWeight ? Math.max(0, firstWeight - currentWeight) : 0;
+    const newlyEarned = [];
+
+    ALL_BADGES.forEach(badge => {
+      if (earnedBadges[badge.id]) return; // already earned
+      let earned = false;
+      if (badge.type === 'streak')  earned = streak >= badge.threshold;
+      if (badge.type === 'weight')  earned = badge.id === 'loss_goal'
+        ? currentWeight <= profile.goalWeight
+        : lostLbs >= badge.threshold;
+      if (badge.type === 'wlog')    earned = weightLog.length >= badge.threshold;
+      if (badge.type === 'hydro' && badge.id === 'hydro_first') earned = ozLog.length > 0;
+      // hydro_7 — check hydration streak stored in profile
+      if (badge.type === 'hydro' && badge.id === 'hydro_7') {
+        earned = (profile.hydroStreak || 0) >= 7;
+      }
+      if (earned) {
+        earnedBadges[badge.id] = new Date().toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+        newlyEarned.push(badge);
+      }
+    });
+
+    localStorage.setItem('ff_badges', JSON.stringify(earnedBadges));
+    renderBadges();
+
+    // Queue badge popups
+    if (newlyEarned.length > 0) {
+      pendingBadgeQueue.push(...newlyEarned);
+      if (pendingBadgeQueue.length === newlyEarned.length) showNextBadge();
+    }
+  }
+
+  function showNextBadge() {
+    if (pendingBadgeQueue.length === 0) return;
+    const badge = pendingBadgeQueue.shift();
+    document.getElementById('bao-emoji').textContent = badge.emoji;
+    document.getElementById('bao-title').textContent = badge.name;
+    document.getElementById('bao-desc').textContent = badge.desc;
+    document.getElementById('badge-overlay').classList.add('show');
+  }
+
+  function closeBadgeOverlay() {
+    document.getElementById('badge-overlay').classList.remove('show');
+    setTimeout(() => { if (pendingBadgeQueue.length > 0) showNextBadge(); }, 400);
+  }
+
+  function renderBadges() {
+    const grid = document.getElementById('badge-grid');
+    grid.innerHTML = ALL_BADGES.map(badge => {
+      const earned = !!earnedBadges[badge.id];
+      const isNew = earned && !badge._seen;
+      return `<div class="badge-item ${earned ? 'earned' : 'locked'}" title="${badge.desc}">
+        ${isNew ? '<div class="badge-new-dot"></div>' : ''}
+        <span class="badge-emoji">${badge.emoji}</span>
+        <span class="badge-name">${badge.name}</span>
+        ${earned ? `<span class="badge-date">${earnedBadges[badge.id]}</span>` : '<span class="badge-date">Locked</span>'}
+      </div>`;
+    }).join('');
+  }
+
+  // ─── Import / Export ──────────────────────────────────────────────────────────
+  function exportData() {
+    const data = {
+      version: '1.0',
+      exportDate: new Date().toISOString(),
+      profile,
+      weightLog,
+      earnedBadges,
+      ozLog,
+      waterDrank,
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fastforward-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('✅', 'Backup exported! Save this file somewhere safe.');
+  }
+
+  function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (!data.profile || !data.profile.name) throw new Error('Invalid backup file.');
+        // Restore everything
+        profile = data.profile;
+        weightLog = data.weightLog || [];
+        earnedBadges = data.earnedBadges || {};
+        ozLog = data.ozLog || [];
+        waterDrank = data.waterDrank || 0;
+        localStorage.setItem('ff_profile', JSON.stringify(profile));
+        localStorage.setItem('ff_weight_log', JSON.stringify(weightLog));
+        localStorage.setItem('ff_badges', JSON.stringify(earnedBadges));
+        localStorage.setItem('ff_oz_log', JSON.stringify(ozLog));
+        localStorage.setItem('ff_water', String(waterDrank));
+        localStorage.setItem('ff_water_date', new Date().toDateString());
+        // If dashboard already showing, refresh it
+        if (document.getElementById('dashboard-view').classList.contains('active')) {
+          clearInterval(clockInterval);
+          clearInterval(hydrationInterval);
+          showDashboard();
+        } else {
+          showDashboard();
+        }
+        showToast('📥', `Backup restored for ${profile.name}! Welcome back.`);
+      } catch(err) {
+        showToast('❌', 'Could not import: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  }
+
   function resetAll() {
     clearInterval(clockInterval);
     clearInterval(hydrationInterval);
@@ -1220,6 +1696,8 @@
     localStorage.removeItem('ff_water');
     localStorage.removeItem('ff_oz_log');
     localStorage.removeItem('ff_water_date');
+    localStorage.removeItem('ff_weight_log');
+    localStorage.removeItem('ff_badges');
     document.getElementById('dashboard-view').classList.remove('active');
     document.getElementById('setup-view').classList.add('active');
     step = 1;
@@ -1228,6 +1706,8 @@
     profile = {};
     waterDrank = 0;
     ozLog = [];
+    weightLog = [];
+    earnedBadges = {};
   }
 
   // ─── Load saved profile ────────────────────────────────────────────────────────
