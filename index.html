@@ -589,12 +589,34 @@
   }
   /* ── Import/Export ──────────────────────────────────── */
   .io-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 0.75rem;
     margin-top: 0.5rem;
   }
-  .io-row .btn { font-size: 0.78rem; padding: 0.7rem 1rem; }
+  .io-row .btn { font-size: 0.85rem; padding: 0.85rem 1rem; width: 100%; }
+  .file-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    cursor: pointer;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    transition: color 0.2s, border-color 0.2s;
+    width: 100%;
+    text-align: center;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .file-label:hover { color: var(--text); border-color: var(--muted); }
 
   /* Notification badge */
   .notification-badge {
@@ -906,10 +928,10 @@
         Export a JSON backup of all your data — profile, weight log, badges, and streaks. Import to restore on any device.
       </p>
       <div class="io-row">
-        <button class="btn" onclick="exportData()">&#x2B07; Export Backup</button>
-        <button class="btn secondary" onclick="document.getElementById('import-file').click()">&#x2B06; Import Backup</button>
+        <button class="btn" onclick="exportData()" style="-webkit-tap-highlight-color:transparent;touch-action:manipulation;">&#x2B07; Export Backup</button>
+        <label for="import-file" class="file-label">&#x2B06; Import Backup</label>
+        <input type="file" id="import-file" accept=".json" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" onchange="importData(event)">
       </div>
-      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
     </div>
   </div>
 </div>
