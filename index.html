@@ -819,6 +819,11 @@
         <div class="stat-value" id="stat-goal">──</div>
         <div class="stat-name">Goal lbs</div>
       </div>
+      <div class="stat-box" id="stat-loss-box">
+        <div class="stat-icon">📉</div>
+        <div class="stat-value" id="stat-loss" style="color:var(--green)">──</div>
+        <div class="stat-name">Total Lost</div>
+      </div>
       <div class="stat-box">
         <div class="stat-icon">🕐</div>
         <div class="stat-value" id="stat-window">──</div>
@@ -828,6 +833,11 @@
         <div class="stat-icon">📅</div>
         <div class="stat-value" id="stat-days">0</div>
         <div class="stat-name">Day Streak</div>
+      </div>
+      <div class="stat-box" id="stat-meal-box">
+        <div class="stat-icon">🍽️</div>
+        <div class="stat-value" id="stat-meal-time" style="font-size:1.1rem">──</div>
+        <div class="stat-name">Meal Start</div>
       </div>
     </div>
 
@@ -1263,10 +1273,43 @@
 
   function updateStats() {
     const currentW = weightLog.length > 0 ? weightLog[weightLog.length-1].weight : profile.weight;
+    const startW   = weightLog.length > 0 ? weightLog[0].weight : profile.weight;
+    const lostLbs  = parseFloat((startW - currentW).toFixed(1));
+
     document.getElementById('stat-weight').textContent = currentW;
-    document.getElementById('stat-goal').textContent = profile.goalWeight;
+    document.getElementById('stat-goal').textContent   = profile.goalWeight;
     document.getElementById('stat-window').textContent = profile.protocol;
-    document.getElementById('stat-days').textContent = profile.streak || 1;
+    document.getElementById('stat-days').textContent   = profile.streak || 1;
+
+    // Total weight lost
+    const lossEl = document.getElementById('stat-loss');
+    if (weightLog.length >= 2) {
+      lossEl.textContent = lostLbs > 0 ? `-${lostLbs} lbs` : lostLbs < 0 ? `+${Math.abs(lostLbs)} lbs` : '0 lbs';
+      lossEl.style.color = lostLbs > 0 ? 'var(--green)' : lostLbs < 0 ? 'var(--accent2)' : 'var(--muted)';
+    } else {
+      lossEl.textContent = '──';
+      lossEl.style.color = 'var(--muted)';
+    }
+
+    // Meal start stat
+    const mealEl = document.getElementById('stat-meal-time');
+    const btn    = document.getElementById('btn-log-meal');
+    if (profile.mealLoggedToday === new Date().toDateString()) {
+      mealEl.textContent = formatTime(profile.eatStart);
+      if (btn) {
+        btn.textContent = `✅ Meal started at ${formatTime(profile.eatStart)}`;
+        btn.disabled = true;
+        btn.style.opacity = '0.7';
+      }
+    } else {
+      mealEl.textContent = '──';
+      if (btn) {
+        btn.textContent = '🍽️ Log Meal Start';
+        btn.disabled = false;
+        btn.style.opacity = '1';
+      }
+    }
+
     document.getElementById('wl-start').textContent = formatTime(profile.eatStart);
     document.getElementById('wl-end').textContent = formatTime(profile.eatEnd);
   }
@@ -1386,21 +1429,57 @@
       tipEl.dataset.last = Date.now();
     }
 
-    // Log meal button
-    document.getElementById('btn-log-meal').textContent = inEatingWindow ? '✅ Eating Window Active' : '🍽️ Log Meal Start';
+    // Log meal button — only update if not already logged today
+    if (profile.mealLoggedToday !== new Date().toDateString()) {
+      const btn = document.getElementById('btn-log-meal');
+      if (btn) {
+        btn.textContent = inEatingWindow ? '🍽️ Log Meal Start (window open)' : '🍽️ Log Meal Start';
+        btn.disabled = false;
+        btn.style.opacity = '1';
+      }
+    }
   }
 
   function logMeal() {
     const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const mealTimeStr = `${hh}:${mm}`;
     const currentMins = now.getHours() * 60 + now.getMinutes();
     const eatStartMins = timeToMins(profile.eatStart);
-    const eatEndMins = timeToMins(profile.eatEnd);
+    const eatEndMins   = timeToMins(profile.eatEnd);
     const inEatingWindow = (currentMins >= eatStartMins && currentMins < eatEndMins);
-    if (inEatingWindow) {
-      showToast('🍽️', 'Your eating window is open! Enjoy your meal mindfully — choose whole, nutritious foods to fuel your fast.');
-    } else {
-      showToast('⏰', `Your eating window opens at ${formatTime(profile.eatStart)}. Stay hydrated until then!`);
+
+    if (inEatingWindow && profile.mealLoggedToday === new Date().toDateString()) {
+      // Already logged today — just confirm
+      showToast('🍽️', `Meal already logged today at ${formatTime(profile.eatStart)}. Enjoy your eating window!`);
+      return;
     }
+
+    // Record actual meal start time — becomes the new eatStart for today
+    const windowDurationMins = eatEndMins - eatStartMins; // preserve window length
+    const newEndMins = currentMins + windowDurationMins;
+    const newEndH = Math.floor(newEndMins / 60) % 24;
+    const newEndM = newEndMins % 60;
+    const newEndStr = `${String(newEndH).padStart(2,'0')}:${String(newEndM).padStart(2,'0')}`;
+
+    // Save updated window
+    profile.eatStart = mealTimeStr;
+    profile.eatEnd   = newEndStr;
+    profile.mealLoggedToday = new Date().toDateString();
+    localStorage.setItem('ff_profile', JSON.stringify(profile));
+
+    // Update window labels immediately
+    document.getElementById('wl-start').textContent = formatTime(mealTimeStr);
+    document.getElementById('wl-end').textContent   = formatTime(newEndStr);
+    updateStats();
+
+    const btn = document.getElementById('btn-log-meal');
+    btn.textContent = `✅ Meal started at ${formatTime(mealTimeStr)}`;
+    btn.disabled = true;
+    btn.style.opacity = '0.7';
+
+    showToast('🍽️', `Meal start logged at ${formatTime(mealTimeStr)}! Your eating window now runs until ${formatTime(newEndStr)}. Eat mindfully — choose whole, nutritious foods.`);
   }
 
   // ─── Notifications ────────────────────────────────────────────────────────────
